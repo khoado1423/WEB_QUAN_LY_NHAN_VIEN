@@ -7,7 +7,9 @@ load_dotenv()
 
 import os, json
 if not os.environ.get("GOOGLE_CREDENTIALS_JSON"):
-    with open("service_account.json", "r", encoding="utf-8") as f:
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    service_account_path = os.path.join(BASE_DIR, "service_account.json")
+    with open(service_account_path, "r", encoding="utf-8-sig") as f:
         os.environ["GOOGLE_CREDENTIALS_JSON"] = f.read()
 
 # -------------------------------------------------------------
