@@ -5,6 +5,7 @@ from flask_login import login_required
 from app import db
 from app.models.task import Task
 from app.services.excel_service import import_tasks_from_excel
+from sheets_helper import get_sheet_data, append_sheet_data
 
 task_bp = Blueprint('task', __name__, url_prefix='/tasks')
 
@@ -24,20 +25,32 @@ def index():
 @task_bp.route('/download-template')
 @login_required
 def download_template():
-    data = {
-        'task_code': ['CV001', 'CV002', 'CV003', 'CV004'],
-        'title': ['Lập báo cáo doanh thu', 'Kiểm tra lỗi hệ thống', 'Họp định kỳ tuần', 'Tối ưu hóa cơ sở dữ liệu'],
-        'description': ['Làm báo cáo tài chính tháng gửi ban giám đốc', 'Fix bug trên server production', 'Họp bàn tiến độ triển khai dự án mới', 'Index lại các bảng dữ liệu lớn'],
-        'priority': ['Cao', 'Trung bình', 'Thấp', 'Cao'],
-        'duration': [4.0, 2.0, 1.5, 3.0]
-    }
-    df = pd.DataFrame(data)
-    
+    try:
+        # Lấy dữ liệu mới nhất từ tab "CongViec" trên Google Sheet mẫu
+        sheet_values = get_sheet_data("CongViec")
+        if sheet_values and len(sheet_values) > 0:
+            header = sheet_values[0]
+            rows = sheet_values[1:]
+            df = pd.DataFrame(rows, columns=header)
+        else:
+            flash('Không lấy được dữ liệu từ Google Sheet mẫu, dùng dữ liệu mặc định.', 'warning')
+            raise ValueError("Sheet trống")
+    except Exception as e:
+        # Nếu lỗi kết nối Google Sheet, dùng dữ liệu cứng dự phòng để web không bị sập
+        data = {
+            'task_code': ['CV001', 'CV002', 'CV003', 'CV004'],
+            'title': ['Lập báo cáo doanh thu', 'Kiểm tra lỗi hệ thống', 'Họp định kỳ tuần', 'Tối ưu hóa cơ sở dữ liệu'],
+            'description': ['Làm báo cáo tài chính tháng gửi ban giám đốc', 'Fix bug trên server production', 'Họp bàn tiến độ triển khai dự án mới', 'Index lại các bảng dữ liệu lớn'],
+            'priority': ['Cao', 'Trung bình', 'Thấp', 'Cao'],
+            'duration': [4.0, 2.0, 1.5, 3.0]
+        }
+        df = pd.DataFrame(data)
+
     instance_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../instance'))
     os.makedirs(instance_dir, exist_ok=True)
     file_path = os.path.join(instance_dir, 'mau_cong_viec.xlsx')
     df.to_excel(file_path, index=False)
-    
+
     return send_file(file_path, as_attachment=True, download_name='mau_cong_viec.xlsx')
 
 @task_bp.route('/import', methods=['POST'])
@@ -60,6 +73,17 @@ def import_excel():
         
         success, message = import_tasks_from_excel(file_path)
         flash(message, 'success' if success else 'danger')
+
+        # Đồng bộ dữ liệu vừa import lên Google Sheet mẫu (tab "CongViec")
+        if success:
+            try:
+                df_imported = pd.read_excel(file_path)
+                rows_to_sync = df_imported.astype(str).values.tolist()
+                if rows_to_sync:
+                    append_sheet_data("CongViec", rows_to_sync)
+            except Exception as e:
+                flash(f'Đã lưu vào database nhưng lỗi khi đồng bộ lên Google Sheet: {e}', 'warning')
+
         if os.path.exists(file_path):
             os.remove(file_path)
             
