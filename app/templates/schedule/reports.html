@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}Báo cáo thống kê - Employee Task Scheduler{% endblock %}
+{% block header_title %}Báo cáo & Thống kê công việc{% endblock %}
+
+{% block content %}
+<!-- Thẻ thống kê tổng quan -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+            <div class="text-muted small fw-bold text-uppercase">Tổng số phân công</div>
+            <h3 class="fw-bold text-primary mt-2 mb-0">{{ total }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+            <div class="text-muted small fw-bold text-uppercase">Đã hoàn thành</div>
+            <h3 class="fw-bold text-success mt-2 mb-0">{{ completed }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+            <div class="text-muted small fw-bold text-uppercase">Chưa hoàn thành</div>
+            <h3 class="fw-bold text-warning mt-2 mb-0">{{ pending }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white h-100">
+            <div class="text-muted small fw-bold text-uppercase">Tỷ lệ hoàn thành</div>
+            <h3 class="fw-bold text-info mt-2 mb-0">{{ completion_rate }}%</h3>
+            <div class="progress mt-2" style="height: 6px;">
+                <div class="progress-bar bg-info" role="progressbar" style="width: {{ completion_rate }}%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Thanh công cụ: Bộ lọc và Xuất báo cáo -->
+<div class="card border-0 shadow-sm rounded-4 p-3 bg-white mb-4">
+    <form method="GET" action="{{ url_for('schedule.reports') }}" class="row g-3 align-items-center">
+        <div class="col-md-4">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="fa-solid fa-filter text-muted"></i></span>
+                <select name="status" class="form-select border-start-0 ps-0">
+                    <option value="">-- Tất cả trạng thái --</option>
+                    <option value="Hoàn thành" {% if status_filter == 'Hoàn thành' %}selected{% endif %}>Hoàn thành</option>
+                    <option value="Chưa làm" {% if status_filter == 'Chưa làm' %}selected{% endif %}>Chưa làm</option>
+                    <option value="Đang thực hiện" {% if status_filter == 'Đang thực hiện' %}selected{% endif %}>Đang thực hiện</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-md-5 d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4 fw-bold shadow-sm">
+                <i class="fa-solid fa-magnifying-glass me-1"></i> Lọc dữ liệu
+            </button>
+            <a href="{{ url_for('schedule.reports') }}" class="btn btn-outline-secondary">Đặt lại</a>
+        </div>
+        <div class="col-md-3 text-md-end">
+            <button type="button" onclick="window.print()" class="btn btn-success fw-bold shadow-sm">
+                <i class="fa-solid fa-print me-1"></i> In / Xuất báo cáo
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Bảng chi tiết hiệu suất -->
+<div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+    <h5 class="fw-bold text-dark mb-3"><i class="fa-solid fa-chart-pie me-2 text-primary"></i>Chi tiết lịch sử hiệu suất</h5>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+            <thead class="table-light text-uppercase">
+                <tr>
+                    <th class="py-3 ps-3">Nhân viên</th>
+                    <th class="py-3">Công việc</th>
+                    <th class="py-3">Ngày thực hiện</th>
+                    <th class="py-3">Ca làm</th>
+                    <th class="py-3">Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sch in schedules %}
+                <tr>
+                    <td class="ps-3 fw-bold text-dark">{{ sch.employee.full_name if sch.employee else 'N/A' }}</td>
+                    <td>{{ sch.task.title if sch.task else 'N/A' }}</td>
+                    <td>{{ sch.work_date.strftime('%d/%m/%Y') if sch.work_date else '' }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ sch.shift }}</span></td>
+                    <td>
+                        <span class="badge {% if sch.status == 'Hoàn thành' %}bg-success{% elif sch.status == 'Đang thực hiện' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                            {{ sch.status }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">Không tìm thấy dữ liệu báo cáo phù hợp.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

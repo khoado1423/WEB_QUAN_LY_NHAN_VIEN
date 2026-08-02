@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Cài đặt hệ thống & Tài khoản{% endblock %}
+{% block header_title %}Cài đặt hệ thống & Tài khoản{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Cấu hình hệ thống & Đổi mật khẩu Admin -->
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <div class="d-flex align-items-center mb-3">
+                <i class="fa-solid fa-gear text-primary fs-4 me-2"></i>
+                <h5 class="fw-bold mb-0 text-dark">Quản lý thông tin chung & Tài khoản Admin</h5>
+            </div>
+            <p class="text-muted small mb-4">Cấu hình thông tin chung hệ thống, email quản trị và thay đổi mật khẩu bảo mật của tài khoản hiện tại.</p>
+            
+            <form method="POST" action="{{ url_for('schedule.settings') }}">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Tên hệ thống / Đơn vị</label>
+                        <input type="text" name="system_name" class="form-control" value="Employee Task Scheduler">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small fw-bold">Email quản trị viên (Admin)</label>
+                        <input type="email" name="admin_email" class="form-control" value="{{ current_user.email or 'admin@scheduler.com' }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label small fw-bold">Đổi mật khẩu tài khoản hiện tại</label>
+                        <input type="password" name="new_admin_password" class="form-control" placeholder="Để trống nếu không muốn đổi mật khẩu">
+                        <div class="form-text small text-muted">Mật khẩu mới sẽ thay thế mật khẩu hiện tại ngay sau khi lưu.</div>
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Thêm tài khoản nhân viên mới -->
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <div class="d-flex align-items-center mb-3">
+                <i class="fa-solid fa-user-plus text-success fs-4 me-2"></i>
+                <h5 class="fw-bold mb-0 text-dark">Thêm tài khoản nhân viên mới</h5>
+            </div>
+            
+            <form method="POST" action="{{ url_for('schedule.settings') }}">
+                <input type="hidden" name="action" value="create_user">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold">Tên đăng nhập (Username / Email)</label>
+                        <input type="text" name="new_username" class="form-control" placeholder="Nhập tên tài khoản..." required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Mật khẩu ban đầu</label>
+                        <input type="password" name="new_password" class="form-control" placeholder="Nhập mật khẩu..." required>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-success btn-sm rounded-pill w-100 fw-bold py-2">
+                            <i class="fa-solid fa-plus me-1"></i> Thêm tài khoản
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Danh sách tài khoản trong hệ thống -->
+    <div class="col-12">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <div class="d-flex align-items-center mb-3">
+                <i class="fa-solid fa-users text-info fs-4 me-2"></i>
+                <h5 class="fw-bold mb-0 text-dark">Danh sách tài khoản trong hệ thống</h5>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+                    <thead class="table-light text-uppercase">
+                        <tr>
+                            <th class="py-3">ID</th>
+                            <th class="py-3">Tên đăng nhập</th>
+                            <th class="py-3">Vai trò</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td class="fw-bold text-muted">#{{ user.id }}</td>
+                            <td class="fw-bold text-dark">{{ user.username }}</td>
+                            <td>
+                                <span class="badge {% if user.role == 'Admin' %}bg-danger{% else %}bg-success{% endif %}">
+                                    {{ user.role }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

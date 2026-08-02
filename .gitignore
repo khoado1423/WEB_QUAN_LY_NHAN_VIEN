@@ -1,0 +1,23 @@
+# Môi trường ảo Python
+venv/
+env/
+ENV/
+
+# File cấu hình Flask & Database tạm thời
+instance/
+*.db
+*.sqlite
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Thư mục IDE
+.vscode/
+.idea/
+
+# Thư mục build Python
+build/
+dist/
+*.egg-info/

@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Lịch tuần - Employee Task Scheduler{% endblock %}
+{% block header_title %}Lịch tuần{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-calendar-week me-2 text-primary"></i>Lịch làm việc trong tuần</h5>
+            <p class="text-muted small mb-0">Từ ngày {{ start_of_week.strftime('%d/%m/%Y') }} đến ngày {{ end_of_week.strftime('%d/%m/%Y') }}</p>
+        </div>
+        
+        <!-- Form chọn tuần/ngày -->
+        <form method="GET" action="{{ url_for('schedule.week_schedule') }}" class="d-flex align-items-center gap-2">
+            <input type="date" name="date" value="{{ selected_date.strftime('%Y-%m-%d') }}" class="form-control form-control-sm rounded-pill px-3 shadow-sm" onchange="this.form.submit()">
+            <a href="{{ url_for('schedule.week_schedule') }}" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold shadow-sm">Tuần này</a>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle mb-0" style="table-layout: fixed; width: 100%;">
+            <thead class="table-light text-uppercase text-center" style="font-size: 12px;">
+                <tr>
+                    <th class="py-3">Thứ Hai</th>
+                    <th class="py-3">Thứ Ba</th>
+                    <th class="py-3">Thứ Tư</th>
+                    <th class="py-3">Thứ Năm</th>
+                    <th class="py-3">Thứ Sáu</th>
+                    <th class="py-3">Thứ Bảy</th>
+                    <th class="py-3 text-danger">Chủ Nhật (Dự phòng)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    {% for i in range(7) %}
+                    {% set current_day = start_of_week + timedelta(days=i) %}
+                    <td class="align-top p-2 bg-light border" style="height: auto; vertical-align: top;">
+                        <!-- Ngày trong tháng -->
+                        <div class="fw-bold text-primary mb-2 text-center bg-white py-1 rounded-3 shadow-sm border" style="font-size: 13px;">
+                            {{ current_day.strftime('%d/%m') }}
+                        </div>
+                        
+                        <!-- Danh sách ca làm việc (Hiển thị tự do, giãn theo nội dung, không có thanh cuộn) -->
+                        <div class="d-flex flex-column gap-2">
+                            {% set ns = namespace(found=false) %}
+                            {% for sch in schedules %}
+                                {% if sch.work_date == current_day %}
+                                    <div class="p-2 bg-white border rounded-3 shadow-sm position-relative">
+                                        <div class="fw-bold text-dark text-truncate" style="font-size: 12px;" title="{{ sch.employee.full_name if sch.employee else 'N/A' }}">
+                                            <i class="fa-solid fa-user text-secondary me-1" style="font-size: 10px;"></i> {{ sch.employee.full_name if sch.employee else 'N/A' }}
+                                        </div>
+                                        <div class="text-muted text-truncate mb-2" style="font-size: 11px;" title="{{ sch.task.title if sch.task else 'N/A' }}">
+                                            {{ sch.task.title if sch.task else 'N/A' }}
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span class="badge {% if sch.shift == 'Ca sáng' %}bg-warning text-dark{% else %}bg-info text-dark{% endif %}" style="font-size: 10px; font-weight: 600;">
+                                                {{ sch.shift }}
+                                            </span>
+                                            <span class="text-secondary" style="font-size: 10px;">{{ sch.status }}</span>
+                                        </div>
+                                    </div>
+                                    {% set ns.found = true %}
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if not ns.found %}
+                                <div class="text-center text-muted fst-italic py-3" style="font-size: 11px;">Trống</div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

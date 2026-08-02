@@ -1,0 +1,203 @@
+{% extends 'base.html' %}
+{% block title %}Phân công - Employee Task Scheduler{% endblock %}
+{% block header_title %}Phân công{% endblock %}
+
+{% block content %}
+<div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div>
+            <h5 class="fw-bold text-dark mb-1"><i class="fa-solid fa-calendar-days me-2 text-primary"></i>Danh sách lịch trình</h5>
+            <p class="text-muted small mb-0">Quản lý và theo dõi toàn bộ ca làm việc của nhân viên.</p>
+        </div>
+        
+        <!-- CHỈ ADMIN MỚI THẤY CÁC NÚT THAO TÁC / PHÂN CÔNG / XÓA -->
+        {% if current_user.is_authenticated and current_user.role == 'Admin' %}
+        <div class="d-flex align-items-center gap-2">
+            <!-- Nút 1: Phân công theo ngày -->
+            <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#autoDayModal">
+                <i class="fa-solid fa-calendar-day me-1"></i> Phân công theo ngày
+            </button>
+
+            <!-- Nút 2: Phân công theo tuần -->
+            <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#autoWeekModal">
+                <i class="fa-solid fa-calendar-week me-1"></i> Phân công theo tuần
+            </button>
+
+            <!-- Nút Xóa tất cả -->
+            <form action="{{ url_for('schedule.delete_all') }}" method="POST" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa tất cả lịch trình không?');">
+                <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">
+                    <i class="fa-solid fa-trash-can me-1"></i> Xóa tất cả
+                </button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+            <thead class="table-light text-uppercase">
+                <tr>
+                    <th class="py-3 ps-3" style="width: 8%;">ID</th>
+                    <th class="py-3" style="width: 25%;">Nhân viên</th>
+                    <th class="py-3" style="width: 25%;">Công việc</th>
+                    <th class="py-3" style="width: 15%;">Ngày thực hiện</th>
+                    <th class="py-3" style="width: 12%;">Ca làm</th>
+                    <th class="py-3" style="width: 10%;">Trạng thái</th>
+                    {% if current_user.is_authenticated and current_user.role == 'Admin' %}
+                    <th class="py-3 text-center" style="width: 5%;">Thao tác</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if schedules %}
+                    {% for sch in schedules %}
+                    <tr>
+                        <td class="ps-3 fw-bold text-muted">#{{ sch.id }}</td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ sch.employee.full_name if sch.employee else 'Không rõ' }}</div>
+                            <div class="text-muted" style="font-size: 11px;">{{ sch.employee.position if sch.employee else '' }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ sch.task.title if sch.task else 'Không rõ' }}</div>
+                            <div class="text-muted" style="font-size: 11px;">Độ ưu tiên: {{ sch.task.priority if sch.task else '' }}</div>
+                        </td>
+                        <td>
+                            {% if current_user.is_authenticated and current_user.role == 'Admin' %}
+                            <form action="{{ url_for('schedule.edit', id=sch.id) }}" method="POST" class="d-flex align-items-center gap-1">
+                                <input type="hidden" name="employee_id" value="{{ sch.employee_id }}">
+                                <input type="hidden" name="task_id" value="{{ sch.task_id }}">
+                                <input type="hidden" name="shift" value="{{ sch.shift }}">
+                                <input type="hidden" name="status" value="{{ sch.status }}">
+                                <input type="date" name="work_date" value="{{ sch.work_date.strftime('%Y-%m-%d') }}" class="form-control form-control-sm" style="font-size: 12px;" onchange="this.form.submit()">
+                            </form>
+                            {% else %}
+                                {{ sch.work_date.strftime('%d/%m/%Y') }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if current_user.is_authenticated and current_user.role == 'Admin' %}
+                            <form action="{{ url_for('schedule.edit', id=sch.id) }}" method="POST">
+                                <input type="hidden" name="employee_id" value="{{ sch.employee_id }}">
+                                <input type="hidden" name="task_id" value="{{ sch.task_id }}">
+                                <input type="hidden" name="work_date" value="{{ sch.work_date.strftime('%Y-%m-%d') }}">
+                                <input type="hidden" name="status" value="{{ sch.status }}">
+                                <select name="shift" class="form-select form-select-sm" style="font-size: 12px;" onchange="this.form.submit()">
+                                    <option value="Ca sáng" {% if sch.shift == 'Ca sáng' %}selected{% endif %}>Ca sáng</option>
+                                    <option value="Ca chiều" {% if sch.shift == 'Ca chiều' %}selected{% endif %}>Ca chiều</option>
+                                </select>
+                            </form>
+                            {% else %}
+                                <span class="badge bg-light text-dark border">{{ sch.shift }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if current_user.is_authenticated and current_user.role == 'Admin' %}
+                            <form action="{{ url_for('schedule.edit', id=sch.id) }}" method="POST">
+                                <input type="hidden" name="employee_id" value="{{ sch.employee_id }}">
+                                <input type="hidden" name="task_id" value="{{ sch.task_id }}">
+                                <input type="hidden" name="work_date" value="{{ sch.work_date.strftime('%Y-%m-%d') }}">
+                                <input type="hidden" name="shift" value="{{ sch.shift }}">
+                                <select name="status" class="form-select form-select-sm {% if sch.status == 'Hoàn thành' %}text-success fw-bold{% else %}text-secondary{% endif %}" style="font-size: 12px;" onchange="this.form.submit()">
+                                    <option value="Chưa làm" {% if sch.status == 'Chưa làm' %}selected{% endif %}>Chưa làm</option>
+                                    <option value="Đang làm" {% if sch.status == 'Đang làm' %}selected{% endif %}>Đang làm</option>
+                                    <option value="Hoàn thành" {% if sch.status == 'Hoàn thành' %}selected{% endif %}>Hoàn thành</option>
+                                </select>
+                            </form>
+                            {% else %}
+                                <span class="badge {% if sch.status == 'Hoàn thành' %}bg-success{% elif sch.status == 'Đang làm' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                    {{ sch.status }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        {% if current_user.is_authenticated and current_user.role == 'Admin' %}
+                        <td class="text-center">
+                            <form action="{{ url_for('schedule.delete', id=sch.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Xóa lịch trình này?');">
+                                <button type="submit" class="btn btn-link text-danger p-0" title="Xóa"><i class="fa-solid fa-trash-can"></i></button>
+                            </form>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="{% if current_user.is_authenticated and current_user.role == 'Admin' %}7{% else %}6{% endif %}" class="text-center text-muted py-4">
+                            <i class="fa-solid fa-calendar-xmark fs-3 mb-2 opacity-50"></i>
+                            <p class="mb-0">Chưa có lịch trình nào được tạo.</p>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal 1: Phân công theo ngày (Chỉ Admin dùng) -->
+{% if current_user.is_authenticated and current_user.role == 'Admin' %}
+<div class="modal fade" id="autoDayModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <form action="{{ url_for('schedule.auto_assign_day') }}" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold text-dark"><i class="fa-solid fa-calendar-day me-2 text-primary"></i>Phân công tự động theo ngày</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Chọn ngày cần phân công <span class="text-danger">*</span></label>
+                        <input type="date" name="work_date" id="workDateInput" class="form-control form-control-sm" required>
+                        <div class="form-text text-muted" style="font-size: 11px;">Hệ thống sẽ tự động phân công công việc cho đúng ngày bạn chọn.</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">Phân công ngày</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Phân công theo tuần (Chỉ Admin dùng) -->
+<div class="modal fade" id="autoWeekModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <form action="{{ url_for('schedule.auto_assign_week') }}" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold text-dark"><i class="fa-solid fa-calendar-week me-2 text-primary"></i>Phân công tự động theo tuần</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Chọn ngày Thứ Hai đầu tuần <span class="text-danger">*</span></label>
+                        <input type="date" name="start_date" id="startWeekInput" class="form-control form-control-sm" required>
+                        <div class="form-text text-muted" style="font-size: 11px;">
+                            Hệ thống sẽ tự động phân công lịch từ <b>Thứ Hai đến Thứ Bảy</b>. Ngày <b>Chủ Nhật</b> để trống dự phòng.
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">Phân công cả tuần</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        const workDateInput = document.getElementById('workDateInput');
+        if (workDateInput && !workDateInput.value) {
+            workDateInput.value = todayStr;
+        }
+
+        const startWeekInput = document.getElementById('startWeekInput');
+        if (startWeekInput && !startWeekInput.value) {
+            startWeekInput.value = todayStr;
+        }
+    });
+</script>
+{% endif %}
+{% endblock %}

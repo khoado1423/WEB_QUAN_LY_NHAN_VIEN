@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+{% block title %}Chỉnh sửa phân công - Employee Task Scheduler{% endblock %}
+{% block header_title %}Chỉnh sửa lịch phân công{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <!-- Quan trọng: Phải có enctype="multipart/form-data" để upload được file -->
+            <form method="POST" enctype="multipart/form-data">
+                
+                <div class="mb-3">
+                    <label for="employee_id" class="form-label fw-bold">Nhân viên</label>
+                    <select name="employee_id" id="employee_id" class="form-select" required>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if emp.id == schedule.employee_id %}selected{% endif %}>
+                            {{ emp.full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="task_id" class="form-label fw-bold">Công việc</label>
+                    <select name="task_id" id="task_id" class="form-select" required>
+                        {% for t in tasks %}
+                        <option value="{{ t.id }}" {% if t.id == schedule.task_id %}selected{% endif %}>
+                            {{ t.title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="work_date" class="form-label fw-bold">Ngày làm việc</label>
+                    <input type="date" class="form-control" id="work_date" name="work_date" value="{{ schedule.work_date.strftime('%Y-%m-%d') }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="shift" class="form-label fw-bold">Ca làm việc</label>
+                    <select name="shift" id="shift" class="form-select" required>
+                        <option value="Ca sáng" {% if schedule.shift == 'Ca sáng' %}selected{% endif %}>Ca sáng</option>
+                        <option value="Ca chiều" {% if schedule.shift == 'Ca chiều' %}selected{% endif %}>Ca chiều</option>
+                        <option value="Ca tối" {% if schedule.shift == 'Ca tối' %}selected{% endif %}>Ca tối</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label for="status" class="form-label fw-bold">Trạng thái</label>
+                    <select name="status" id="status" class="form-select" required>
+                        <option value="Chưa làm" {% if schedule.status == 'Chưa làm' %}selected{% endif %}>Chưa làm</option>
+                        <option value="Đang thực hiện" {% if schedule.status == 'Đang thực hiện' %}selected{% endif %}>Đang thực hiện</option>
+                        <option value="Hoàn thành" {% if schedule.status == 'Hoàn thành' %}selected{% endif %}>Hoàn thành</option>
+                    </select>
+                </div>
+
+                <!-- Thêm tính năng nộp file đính kèm -->
+                <div class="mb-4">
+                    <label for="proof_file" class="form-label fw-bold">Nộp file minh chứng / Báo cáo</label>
+                    <input type="file" class="form-control" id="proof_file" name="proof_file">
+                    {% if schedule.proof_file %}
+                        <div class="form-text text-success mt-2">
+                            <i class="fa-solid fa-paperclip me-1"></i> File đã đính kèm hiện tại: 
+                            <a href="{{ url_for('static', filename='uploads/' + schedule.proof_file) }}" target="_blank" class="fw-semibold text-decoration-underline">{{ schedule.proof_file }}</a>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a href="{{ url_for('schedule.index') }}" class="btn btn-outline-secondary px-4">Quay lại</a>
+                    <button type="submit" class="btn btn-primary px-4 fw-bold">Lưu thay đổi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

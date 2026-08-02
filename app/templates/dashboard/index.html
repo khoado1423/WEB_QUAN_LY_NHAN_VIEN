@@ -1,0 +1,345 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard - Employee Task Scheduler{% endblock %}
+{% block header_title %}Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    .avatar-circle { width: 34px; height: 34px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size: 12px; font-weight: 700; flex-shrink:0; }
+    .shift-cell { padding: 5px 8px; border-radius: 6px; font-size: 10.5px; margin-bottom: 4px; transition: all 0.2s; }
+    .shift-cell.sang-filled { background:#eff6ff; color:#1d4ed8; border:1px solid #dbeafe; font-weight:600; cursor: pointer; }
+    .shift-cell.chieu-filled { background:#ecfdf5; color:#047857; border:1px solid #d1fae5; font-weight:600; cursor: pointer; }
+    .shift-cell.empty { background:#f8fafc; color:#94a3b8; border:1px dashed #cbd5e1; cursor: pointer; }
+    .shift-cell.empty:hover { background:#f1f5f9; border-color:#94a3b8; color:#475569; }
+    .shift-cell.sunday-filled { background: #fdf4ff; color: #a21caf; border: 1px solid #f0abfc; font-weight: 600; cursor: pointer; }
+    .shift-cell.sunday-empty { background: #fdf4ff; color: #a21caf; border: 1px dashed #f0abfc; cursor: pointer; }
+    .shift-cell.sunday-empty:hover { background: #fae8ff; border-color: #e879f9; }
+    .shift-label-col { width: 75px; font-size: 10px; font-weight: 600; color: #64748b; background: #f8fafc; border-right: 1px solid #dee2e6; }
+</style>
+
+<!-- Thống kê tổng quan -->
+<div class="row mb-4" id="stats-container">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3">
+            <div class="d-flex align-items-center">
+                <div class="fs-1 text-primary bg-light p-3 rounded-4 me-3"><i class="fa-solid fa-users"></i></div>
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase">Tổng nhân viên</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ total_employees }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3">
+            <div class="d-flex align-items-center">
+                <div class="fs-1 text-success bg-light p-3 rounded-4 me-3"><i class="fa-solid fa-list-check"></i></div>
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase">Tổng công việc</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ total_tasks }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3">
+            <div class="d-flex align-items-center">
+                <div class="fs-1 text-warning bg-light p-3 rounded-4 me-3"><i class="fa-solid fa-calendar-days"></i></div>
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase">Tổng lịch phân công</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ total_schedules }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3">
+            <div class="d-flex align-items-center">
+                <div class="fs-1 text-info bg-light p-3 rounded-4 me-3"><i class="fa-solid fa-user-clock"></i></div>
+                <div>
+                    <span class="text-muted small fw-semibold text-uppercase">Hôm nay làm việc</span>
+                    <h3 class="fw-bold mb-0 text-dark">{{ today_schedules|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- CỘT TRÁI -->
+    <div class="col-lg-4 mb-4">
+        <!-- Form phân công nhanh -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+            <h6 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-calendar-plus me-2 text-primary"></i>Phân công nhanh</h6>
+            <form action="{{ url_for('schedule.add') }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Nhân viên</label>
+                    <select name="employee_id" class="form-select form-select-sm" required>
+                        <option value="">-- Chọn nhân viên --</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}">{{ emp.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Công việc</label>
+                    <select name="task_id" class="form-select form-select-sm" required>
+                        <option value="">-- Chọn công việc --</option>
+                        {% for t in tasks %}
+                        <option value="{{ t.id }}">{{ t.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Ngày làm việc</label>
+                    <input type="date" name="work_date" value="{{ today.strftime('%Y-%m-%d') }}" class="form-control form-control-sm" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Ca làm</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="shift" id="shift1" value="Ca sáng" checked>
+                        <label class="form-check-label small" for="shift1">Ca sáng (07:30 - 11:30)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="shift" id="shift2" value="Ca chiều">
+                        <label class="form-check-label small" for="shift2">Ca chiều (13:00 - 17:00)</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill fw-bold py-2 shadow-sm">Lưu phân công</button>
+            </form>
+        </div>
+        
+        <!-- Khu vực Công việc hôm nay (Đã tinh chỉnh bản tóm gọn và lọc trùng lặp Task) -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white" id="today-tasks-container">
+            <h6 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-bookmark me-2 text-primary"></i>Công việc hôm nay</h6>
+            {% if today_schedules %}
+                <div class="d-flex flex-column gap-2" style="max-height: 320px; overflow-y: auto;">
+                    {% set seen_tasks = [] %}
+                    {% for sch in today_schedules %}
+                        {% if sch.task and sch.task.id not in seen_tasks %}
+                            {% set _ = seen_tasks.append(sch.task.id) %}
+                            <div class="d-flex align-items-center justify-content-between py-2 border-bottom text-muted" style="font-size: 12px;">
+                                <!-- Giờ làm việc -->
+                                <div class="fw-bold text-dark" style="min-width: 45px;">
+                                    {% if sch.shift == 'Ca sáng' %}07:30{% else %}13:00{% endif %}
+                                </div>
+                                
+                                <!-- Tên nhân viên -->
+                                <div class="text-dark fw-semibold text-truncate" style="max-width: 90px;" title="{{ sch.employee.full_name if sch.employee else 'N/A' }}">
+                                    {{ sch.employee.full_name if sch.employee else 'N/A' }}
+                                </div>
+                                
+                                <!-- Tên công việc -->
+                                <div class="text-truncate flex-grow-1 px-2 text-dark" style="max-width: 110px;" title="{{ sch.task.title if sch.task else 'N/A' }}">
+                                    {{ sch.task.title if sch.task else 'N/A' }}
+                                </div>
+                                
+                                <!-- Badge Sáng / Chiều -->
+                                <div>
+                                    <span class="badge {% if sch.shift == 'Ca sáng' %}bg-primary-subtle text-primary{% else %}bg-success-subtle text-success{% endif %} px-2 py-1" style="font-size: 10px; font-weight: 600;">
+                                        {% if sch.shift == 'Ca sáng' %}Sáng{% else %}Chiều{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center text-muted py-4 small fst-italic">
+                    <i class="fa-solid fa-mug-hot fa-lg mb-2 d-block text-secondary opacity-50"></i>
+                    Hôm nay không có công việc nào.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- CỘT PHẢI: BẢNG MA TRẬN -->
+    <div class="col-lg-8 mb-4" id="matrix-container">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+                <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-calendar-week me-2 text-warning"></i>Lịch làm việc tuần này</h6>
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="{{ url_for('dashboard.index', week_offset=week_offset - 1) }}" class="btn btn-outline-secondary"><i class="fa-solid fa-chevron-left"></i></a>
+                    <a href="{{ url_for('dashboard.index', week_offset=0) }}" class="btn btn-outline-secondary fw-bold">Tuần này</a>
+                    <a href="{{ url_for('dashboard.index', week_offset=week_offset + 1) }}" class="btn btn-outline-secondary"><i class="fa-solid fa-chevron-right"></i></a>
+                </div>
+            </div>
+            <div class="text-muted small mb-3">{{ week_days[0].strftime('%d/%m/%Y') }} - {{ week_days[6].strftime('%d/%m/%Y') }}</div>
+
+            <div class="table-responsive">
+                <table class="table table-bordered align-middle text-center mb-0" style="font-size: 12px;">
+                    <thead class="table-light text-uppercase">
+                        <tr>
+                            <th class="py-3 text-start ps-3" style="width: 22%;">Nhân viên</th>
+                            <th class="py-3 shift-label-col">Ca</th>
+                            {% for day in week_days %}
+                            <th class="py-3">
+                                {{ ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'Chủ Nhật'][loop.index0] }}<br>
+                                <span class="text-muted fw-normal" style="font-size: 10px;">{{ day.strftime('%d/%m') }}</span>
+                            </th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set avatar_palette = ['#dbeafe|#1d4ed8', '#fce7f3|#be185d', '#fef3c7|#b45309', '#ede9fe|#6d28d9', '#d1fae5|#047857'] %}
+                        {% for emp in employees %}
+                        {% set colors = avatar_palette[loop.index0 % avatar_palette|length] %}
+                        <tr>
+                            <td class="text-start ps-3 py-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar-circle" style="background: {{ colors.split('|')[0] }}; color: {{ colors.split('|')[1] }};">{{ emp.full_name[0]|upper }}</div>
+                                    <div>
+                                        <div class="fw-bold text-dark">{{ emp.full_name }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="shift-label-col py-2">
+                                <div class="py-1 mb-1 text-primary fw-bold" style="font-size: 10.5px;">Sáng</div>
+                                <div class="py-1 text-success fw-bold" style="font-size: 10.5px;">Chiều</div>
+                            </td>
+                            
+                            <!-- Vòng lặp qua các ngày trong tuần -->
+                            {% for day in week_days %}
+                            <td class="p-1">
+                                {% set morning = schedules | selectattr('employee_id', 'equalto', emp.id) | selectattr('work_date', 'equalto', day) | selectattr('shift', 'equalto', 'Ca sáng') | first %}
+                                {% set afternoon = schedules | selectattr('employee_id', 'equalto', emp.id) | selectattr('work_date', 'equalto', day) | selectattr('shift', 'equalto', 'Ca chiều') | first %}
+
+                                <!-- CA SÁNG -->
+                                {% if morning %}
+                                    <div class="shift-cell {% if loop.index0 == 6 %}sunday-filled text-center text-truncate{% else %}sang-filled text-truncate text-center{% endif %}" 
+                                         data-bs-toggle="modal" data-bs-target="#assignModal"
+                                         data-emp-id="{{ emp.id }}" data-emp-name="{{ emp.full_name }}"
+                                         data-date="{{ day.strftime('%Y-%m-%d') }}" data-date-display="{{ day.strftime('%d/%m/%Y') }}" data-shift="Ca sáng"
+                                         data-task-id="{{ morning.task_id }}"
+                                         title="{{ morning.task.title if morning.task else '' }}">
+                                        <span>{{ morning.task.title if morning.task else 'Đã phân công' }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="shift-cell {% if loop.index0 == 6 %}sunday-empty text-center{% else %}empty text-center{% endif %}" 
+                                         data-bs-toggle="modal" data-bs-target="#assignModal"
+                                         data-emp-id="{{ emp.id }}" data-emp-name="{{ emp.full_name }}"
+                                         data-date="{{ day.strftime('%Y-%m-%d') }}" data-date-display="{{ day.strftime('%d/%m/%Y') }}" data-shift="Ca sáng"
+                                         data-task-id="">
+                                        <span>{{ 'Dự phòng' if loop.index0 == 6 else 'Trống lịch' }}</span>
+                                    </div>
+                                {% endif %}
+
+                                <!-- CA CHIỀU -->
+                                {% if afternoon %}
+                                    <div class="shift-cell mt-1 {% if loop.index0 == 6 %}sunday-filled text-center text-truncate{% else %}chieu-filled text-truncate text-center{% endif %}" 
+                                         data-bs-toggle="modal" data-bs-target="#assignModal"
+                                         data-emp-id="{{ emp.id }}" data-emp-name="{{ emp.full_name }}"
+                                         data-date="{{ day.strftime('%Y-%m-%d') }}" data-date-display="{{ day.strftime('%d/%m/%Y') }}" data-shift="Ca chiều"
+                                         data-task-id="{{ afternoon.task_id }}"
+                                         title="{{ afternoon.task.title if afternoon.task else '' }}">
+                                        <span>{{ afternoon.task.title if afternoon.task else 'Đã phân công' }}</span>
+                                    </div>
+                                {% else %}
+                                    <div class="shift-cell mt-1 {% if loop.index0 == 6 %}sunday-empty text-center{% else %}empty text-center{% endif %}" 
+                                         data-bs-toggle="modal" data-bs-target="#assignModal"
+                                         data-emp-id="{{ emp.id }}" data-emp-name="{{ emp.full_name }}"
+                                         data-date="{{ day.strftime('%Y-%m-%d') }}" data-date-display="{{ day.strftime('%d/%m/%Y') }}" data-shift="Ca chiều"
+                                         data-task-id="">
+                                        <span>{{ 'Dự phòng' if loop.index0 == 6 else 'Trống lịch' }}</span>
+                                    </div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal phân công nhanh từ ô trống/dự phòng -->
+<div class="modal fade" id="assignModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow rounded-4">
+            <form action="{{ url_for('schedule.add') }}" method="POST">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="fw-bold text-dark"><i class="fa-solid fa-calendar-plus me-2 text-primary"></i>Phân công lịch làm việc</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="employee_id" id="modalEmpId">
+                    <input type="hidden" name="work_date" id="modalDate">
+                    <input type="hidden" name="shift" id="modalShift">
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Nhân viên</label>
+                        <input type="text" id="modalEmpName" class="form-control form-control-sm bg-light fw-bold" readonly>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold text-muted">Ngày làm</label>
+                            <input type="text" id="modalDateDisplay" class="form-control form-control-sm bg-light fw-bold" readonly>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold text-muted">Ca làm</label>
+                            <input type="text" id="modalShiftDisplay" class="form-control form-control-sm bg-light fw-bold" readonly>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Chọn công việc <span class="text-danger">*</span></label>
+                        <select name="task_id" class="form-select form-select-sm" required>
+                            <option value="">-- Chọn công việc --</option>
+                            {% for t in tasks %}
+                            <option value="{{ t.id }}">{{ t.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-light btn-sm rounded-pill px-3" data-bs-dismiss="modal">Hủy</button>
+                    <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">Xác nhận phân công</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var assignModal = document.getElementById('assignModal');
+    if(assignModal) {
+        assignModal.addEventListener('show.bs.modal', function (event) {
+            var btn = event.relatedTarget;
+            assignModal.querySelector('#modalEmpId').value = btn.getAttribute('data-emp-id');
+            assignModal.querySelector('#modalEmpName').value = btn.getAttribute('data-emp-name');
+            assignModal.querySelector('#modalDate').value = btn.getAttribute('data-date');
+            assignModal.querySelector('#modalDateDisplay').value = btn.getAttribute('data-date-display');
+            assignModal.querySelector('#modalShift').value = btn.getAttribute('data-shift');
+            assignModal.querySelector('#modalShiftDisplay').value = btn.getAttribute('data-shift');
+            
+            var taskId = btn.getAttribute('data-task-id');
+            var taskSelect = assignModal.querySelector('select[name="task_id"]');
+            if (taskSelect) {
+                taskSelect.value = taskId ? taskId : "";
+            }
+        });
+    }
+
+    // --- LOGIC ĐỒNG BỘ REAL-TIME ---
+    setInterval(async function() {
+        try {
+            const response = await fetch(window.location.href);
+            const htmlText = await response.text();
+            
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlText, 'text/html');
+            
+            document.getElementById('stats-container').innerHTML = doc.getElementById('stats-container').innerHTML;
+            document.getElementById('today-tasks-container').innerHTML = doc.getElementById('today-tasks-container').innerHTML;
+            document.getElementById('matrix-container').innerHTML = doc.getElementById('matrix-container').innerHTML;
+            
+        } catch (error) {
+            console.error("Lỗi đồng bộ nền:", error);
+        }
+    }, 5000);
+});
+</script>
+{% endblock %}

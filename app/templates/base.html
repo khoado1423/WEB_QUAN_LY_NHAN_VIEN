@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Employee Task Scheduler{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        :root {
+            --navy: #0b1f3f;
+            --navy-active: #1d4ed8;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f1f4f9; }
+
+        /* Sidebar */
+        .sidebar {
+            min-height: 100vh; background-color: var(--navy); color: #cbd5e1;
+            width: 250px; position: fixed; display: flex; flex-direction: column; z-index: 1000;
+        }
+        .sidebar-brand { padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:10px; }
+        .sidebar-brand .icon-box { width:36px; height:36px; border-radius:10px; background:rgba(59,130,246,0.2); display:flex; align-items:center; justify-content:center; color:#93c5fd; }
+        .sidebar-brand .brand-text { font-weight:700; color:#fff; line-height:1.15; font-size: 14px; }
+        .sidebar-nav { flex: 1; padding: 14px 10px; }
+        .sidebar-nav .nav-link { color: #a0aec0; padding: 10px 14px; margin-bottom: 4px; border-radius: 8px; font-size: 14px; display:flex; align-items:center; gap:10px;}
+        .sidebar-nav .nav-link i { width: 18px; text-align:center; }
+        .sidebar-nav .nav-link:hover { color: white; background-color: rgba(255,255,255,0.06); }
+        .sidebar-nav .nav-link.active { color: white; background-color: var(--navy-active); }
+        .sidebar-footer { padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.08); }
+        .sidebar-footer .avatar { width:36px; height:36px; border-radius:50%; background:rgba(59,130,246,0.25); color:#93c5fd; display:flex; align-items:center; justify-content:center; font-weight:600;}
+        .sidebar-footer a { color:#f87171; font-size:12px; text-decoration:none; }
+        .sidebar-footer a:hover { text-decoration:underline; }
+
+        .main-content { margin-left: 250px; padding: 22px 25px; }
+        .top-navbar { background: white; border-radius: 12px; padding: 14px 22px; margin-bottom: 22px; box-shadow: 0 2px 6px rgba(15,23,42,0.05); }
+        .top-navbar .meta-item { font-size: 13px; color:#64748b; display:flex; align-items:center; gap:6px; }
+        .bell-btn { position: relative; border:none; background:#f1f5f9; width:36px; height:36px; border-radius:10px; color:#64748b; }
+        .bell-badge { position:absolute; top:-4px; right:-4px; background:#ef4444; color:white; font-size:10px; border-radius:50%; width:16px; height:16px; display:flex; align-items:center; justify-content:center; }
+
+        /* Cards */
+        .card { border-radius: 14px !important; }
+
+        @media (max-width: 991px) {
+            .sidebar { width: 72px; }
+            .sidebar-brand .brand-text, .sidebar-nav .nav-link span, .sidebar-footer .info { display:none; }
+            .main-content { margin-left: 72px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Left Menu -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <div class="icon-box"><i class="fa-solid fa-calendar-check"></i></div>
+            <div class="brand-text">Employee<br>Task Scheduler</div>
+        </div>
+        <ul class="nav flex-column sidebar-nav">
+            <!-- 1. Dashboard (Cả Admin và Nhân viên đều thấy) -->
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}" href="{{ url_for('dashboard.index') }}">
+                    <i class="fa-solid fa-house"></i> <span>Dashboard</span>
+                </a>
+            </li>
+
+            <!-- 2. Lịch tuần (Cả Admin và Nhân viên đều thấy) -->
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint and 'week_schedule' in request.endpoint %}active{% endif %}" href="{{ url_for('schedule.week_schedule') }}">
+                    <i class="fa-solid fa-calendar-week"></i> <span>Lịch tuần</span>
+                </a>
+            </li>
+
+            <!-- 3. Báo cáo (Cả Admin và Nhân viên đều thấy) -->
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'schedule.reports' %}active{% endif %}" href="{{ url_for('schedule.reports') }}">
+                    <i class="fa-solid fa-chart-pie"></i> <span>Báo cáo</span>
+                </a>
+            </li>
+
+            <!-- CÁC CHỨC NĂNG QUẢN TRỊ: CHỈ ADMIN MỚI NHÌN THẤY -->
+            {% if current_user.is_authenticated and current_user.role == 'Admin' %}
+            <hr class="text-secondary my-2">
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint and 'employee' in request.endpoint %}active{% endif %}" href="{{ url_for('employee.index') }}">
+                    <i class="fa-solid fa-user-group"></i> <span>Nhân viên</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint and 'task' in request.endpoint %}active{% endif %}" href="{{ url_for('task.index') }}">
+                    <i class="fa-solid fa-list-check"></i> <span>Công việc</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'schedule.index' %}active{% endif %}" href="{{ url_for('schedule.index') }}">
+                    <i class="fa-solid fa-calendar-days"></i> <span>Phân công</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'schedule.settings' %}active{% endif %}" href="{{ url_for('schedule.settings') }}">
+                    <i class="fa-solid fa-gear"></i> <span>Cài đặt</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+
+        <div class="sidebar-footer d-flex align-items-center justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <div class="avatar">{{ current_user.username[0]|upper if current_user.is_authenticated else '?' }}</div>
+                <div class="info">
+                    <div class="text-white small fw-semibold">{{ current_user.username if current_user.is_authenticated else '' }}</div>
+                    <div class="text-secondary" style="font-size: 11px;">{{ current_user.role if current_user.is_authenticated else '' }}</div>
+                </div>
+            </div>
+            <a href="{{ url_for('auth.logout') }}" title="Đăng xuất"><i class="fa-solid fa-right-from-bracket"></i></a>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div class="top-navbar d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h4 class="m-0 fw-bold">{% block header_title %}Hệ thống Quản lý{% endblock %}</h4>
+            <div class="d-flex align-items-center gap-3">
+                <div class="meta-item"><i class="fa-regular fa-clock"></i> <span id="liveClock">--:--:--</span></div>
+                <div class="meta-item d-none d-md-flex"><i class="fa-regular fa-calendar"></i> <span id="liveDate"></span></div>
+                <button class="bell-btn" type="button" title="Thông báo">
+                    <i class="fa-regular fa-bell"></i>
+                    <span class="bell-badge">3</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('liveClock').textContent = now.toLocaleTimeString('vi-VN', { hour12: false });
+            document.getElementById('liveDate').textContent = now.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+    </script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

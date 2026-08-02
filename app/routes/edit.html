@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}Chỉnh sửa Lịch phân công{% endblock %}
+{% block header_title %}Chỉnh sửa Lịch làm việc{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+            <div class="card-header bg-white py-3 px-4 border-0">
+                <h5 class="fw-bold m-0 text-dark"><i class="fa-solid fa-calendar-pen me-2 text-primary"></i>Cập nhật thông tin phân công lịch</h5>
+            </div>
+            <div class="card-body px-4 pb-4">
+                <form action="{{ url_for('schedule.edit', id=schedule.id) }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Nhân viên thực hiện</label>
+                        <select name="employee_id" class="form-select rounded-pill" required>
+                            {% for emp in employees %}
+                                <option value="{{ emp.id }}" {% if emp.id == schedule.employee_id %}selected{% endif %}>
+                                    {{ emp.employee_code }} - {{ emp.full_name }} ({{ emp.department }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Công việc</label>
+                        <select name="task_id" class="form-select rounded-pill" required>
+                            {% for t in tasks %}
+                                <option value="{{ t.id }}" {% if t.id == schedule.task_id %}selected{% endif %}>
+                                    {{ t.task_code }} - {{ t.title }} (Ưu tiên: {{ t.priority }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Ngày thực hiện</label>
+                        <input type="date" name="work_date" class="form-control rounded-pill" value="{{ schedule.work_date.strftime('%Y-%m-%d') if schedule.work_date else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Ca làm việc</label>
+                        <select name="shift" class="form-select rounded-pill" required>
+                            <option value="Ca sáng" {% if schedule.shift == 'Ca sáng' %}selected{% endif %}>Ca sáng</option>
+                            <option value="Ca chiều" {% if schedule.shift == 'Ca chiều' %}selected{% endif %}>Ca chiều</option>
+                            <option value="Ca tối" {% if schedule.shift == 'Ca tối' %}selected{% endif %}>Ca tối</option>
+                            <option value="Cả ngày" {% if schedule.shift == 'Cả ngày' %}selected{% endif %}>Cả ngày</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small text-muted">Trạng thái công việc</label>
+                        <select name="status" class="form-select rounded-pill" required>
+                            <option value="Chưa làm" {% if schedule.status == 'Chưa làm' %}selected{% endif %}>Chưa làm</option>
+                            <option value="Đang thực hiện" {% if schedule.status == 'Đang thực hiện' %}selected{% endif %}>Đang thực hiện</option>
+                            <option value="Hoàn thành" {% if schedule.status == 'Hoàn thành' %}selected{% endif %}>Hoàn thành</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('schedule.index') }}" class="btn btn-outline-secondary rounded-pill px-4">
+                            <i class="fa-solid fa-arrow-left me-1"></i> Quay lại
+                        </a>
+                        <button type="submit" class="btn btn-primary text-white rounded-pill px-4 shadow-sm fw-bold">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
