@@ -1,4 +1,32 @@
 import os
+import subprocess
+import sys
+import importlib.util
+
+# -------------------------------------------------------------
+# 1. KIỂM TRA VÀ TỰ ĐỘNG CÀI ĐẶT THƯ VIỆN (CHỈ CHẠY LẦN ĐẦU)
+# -------------------------------------------------------------
+def check_and_install_requirements():
+    # Danh sách các thư viện cốt lõi cần kiểm tra
+    required_packages = ["flask", "googleapiclient"]
+    
+    # Kiểm tra nếu THIẾU BẤT KỲ thư viện nào trong danh sách trên
+    if any(importlib.util.find_spec(pkg) is None for pkg in required_packages):
+        print("⚡ Lần đầu chạy project: Đang tự động cài đặt các thư viện cần thiết...")
+        try:
+            # Tự động gọi pip install -r requirements.txt
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
+            print("✅ Cài đặt thư viện hoàn tất!\n")
+        except Exception as e:
+            print(f"❌ Lỗi trong quá trình cài đặt thư viện: {e}")
+
+# Thực thi kiểm tra cài đặt trước tiên
+check_and_install_requirements()
+
+
+# -------------------------------------------------------------
+# 2. IMPORT CÁC MODULE CỦA ỨNG DỤNG (Sau khi đã đảm bảo đủ thư viện)
+# -------------------------------------------------------------
 from app import create_app, db
 from app.models.user import User
 from sheets_helper import get_sheet_data, update_sheet_data, append_sheet_data
