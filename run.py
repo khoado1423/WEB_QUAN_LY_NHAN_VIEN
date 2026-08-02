@@ -2,6 +2,13 @@ import os
 import subprocess
 import sys
 import importlib.util
+from dotenv import load_dotenv
+load_dotenv()
+
+import os, json
+if not os.environ.get("GOOGLE_CREDENTIALS_JSON"):
+    with open("service_account.json", "r", encoding="utf-8") as f:
+        os.environ["GOOGLE_CREDENTIALS_JSON"] = f.read()
 
 # -------------------------------------------------------------
 # 1. KIỂM TRA VÀ TỰ ĐỘNG CÀI ĐẶT THƯ VIỆN (CHỈ CHẠY LẦN ĐẦU)

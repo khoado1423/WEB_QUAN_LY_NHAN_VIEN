@@ -124,3 +124,38 @@ def delete_all():
         db.session.rollback()
         flash('Lỗi khi xóa toàn bộ dữ liệu nhân viên (có thể vướng khóa ngoại lịch trình)!', 'danger')
     return redirect(url_for('employee.index'))
+
+from data_helper import get_all_employees
+
+@employee_bp.route('/sync-from-sheet', methods=['POST'])
+@login_required
+def sync_from_sheet():
+    try:
+        sheet_rows = get_all_employees()
+        success_count = 0
+        update_count = 0
+        for row in sheet_rows:
+            code = str(row.get('employee_code', '')).strip()
+            name = str(row.get('full_name', '')).strip()
+            email = str(row.get('email', '')).strip()
+            department = str(row.get('department', '')).strip()
+            if not code:
+                continue
+
+            employee = Employee.query.filter_by(employee_code=code).first()
+            if employee:
+                employee.full_name = name
+                employee.email = email
+                employee.department = department
+                update_count += 1
+            else:
+                new_emp = Employee(employee_code=code, full_name=name, email=email, department=department)
+                db.session.add(new_emp)
+                success_count += 1
+
+        db.session.commit()
+        flash(f'Đồng bộ thành công! Thêm mới: {success_count}, Cập nhật: {update_count} nhân viên.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Lỗi khi đồng bộ từ Google Sheet: {e}', 'danger')
+    return redirect(url_for('employee.index'))

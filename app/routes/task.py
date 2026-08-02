@@ -126,3 +126,44 @@ def delete_all():
         db.session.rollback()
         flash('Lỗi khi xóa toàn bộ công việc (có thể vướng khóa ngoại lịch trình)!', 'danger')
     return redirect(url_for('task.index'))
+
+
+from data_helper import get_all_tasks
+
+@task_bp.route('/sync-from-sheet', methods=['POST'])
+@login_required
+def sync_from_sheet():
+    try:
+        sheet_rows = get_all_tasks()
+        success_count = 0
+        update_count = 0
+        for row in sheet_rows:
+            code = str(row.get('task_code', '')).strip()
+            title = str(row.get('title', '')).strip()
+            description = str(row.get('description', '')).strip()
+            priority = str(row.get('priority', 'Trung bình')).strip()
+            try:
+                duration = float(row.get('duration', 1.0))
+            except (ValueError, TypeError):
+                duration = 1.0
+            if not code:
+                continue
+
+            task = Task.query.filter_by(task_code=code).first()
+            if task:
+                task.title = title
+                task.description = description
+                task.priority = priority
+                task.duration = duration
+                update_count += 1
+            else:
+                new_task = Task(task_code=code, title=title, description=description, priority=priority, duration=duration)
+                db.session.add(new_task)
+                success_count += 1
+
+        db.session.commit()
+        flash(f'Đồng bộ thành công! Thêm mới: {success_count}, Cập nhật: {update_count} công việc.', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Lỗi khi đồng bộ từ Google Sheet: {e}', 'danger')
+    return redirect(url_for('task.index'))
