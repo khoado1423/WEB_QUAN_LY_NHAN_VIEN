@@ -40,7 +40,14 @@ def create_app(config_class=Config):
     app.register_blueprint(schedule_bp)
     app.register_blueprint(assignment_bp)  
 
+    # Bơm system_name vào MỌI template (sidebar, tiêu đề trang...)
+    # để khi Admin đổi Tên hệ thống ở trang Cài đặt, nó cập nhật ở khắp nơi.
+    @app.context_processor
+    def inject_system_name():
+        from app.models.setting import SystemSetting
+        return dict(system_name=SystemSetting.get('system_name', 'Employee Task Scheduler'))
+
     return app
 
 # Nạp các model database để Flask-Migrate nhận diện
-from app.models import user, employee, task, schedule, assignment
+from app.models import user, employee, task, schedule, assignment, setting

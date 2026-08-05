@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Employee Task Scheduler{% endblock %}</title>
+    <title>{% block title %}{{ system_name }}{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
@@ -19,8 +19,8 @@
             width: 250px; position: fixed; display: flex; flex-direction: column; z-index: 1000;
         }
         .sidebar-brand { padding: 18px 20px; border-bottom: 1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:10px; }
-        .sidebar-brand .icon-box { width:36px; height:36px; border-radius:10px; background:rgba(59,130,246,0.2); display:flex; align-items:center; justify-content:center; color:#93c5fd; }
-        .sidebar-brand .brand-text { font-weight:700; color:#fff; line-height:1.15; font-size: 14px; }
+        .sidebar-brand .icon-box { width:36px; height:36px; border-radius:10px; background:rgba(59,130,246,0.2); display:flex; align-items:center; justify-content:center; color:#93c5fd; flex-shrink: 0; }
+        .sidebar-brand .brand-text { font-weight:700; color:#fff; line-height:1.15; font-size: 14px; overflow-wrap: break-word; }
         .sidebar-nav { flex: 1; padding: 14px 10px; }
         .sidebar-nav .nav-link { color: #a0aec0; padding: 10px 14px; margin-bottom: 4px; border-radius: 8px; font-size: 14px; display:flex; align-items:center; gap:10px;}
         .sidebar-nav .nav-link i { width: 18px; text-align:center; }
@@ -52,7 +52,7 @@
     <div class="sidebar">
         <div class="sidebar-brand">
             <div class="icon-box"><i class="fa-solid fa-calendar-check"></i></div>
-            <div class="brand-text">Employee<br>Task Scheduler</div>
+            <div class="brand-text">{{ system_name }}</div>
         </div>
         <ul class="nav flex-column sidebar-nav">
             <!-- 1. Dashboard (Cả Admin và Nhân viên đều thấy) -->

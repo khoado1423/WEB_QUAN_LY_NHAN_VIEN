@@ -12,22 +12,37 @@
                 <h5 class="fw-bold mb-0 text-dark">Quản lý thông tin chung & Tài khoản Admin</h5>
             </div>
             <p class="text-muted small mb-4">Cấu hình thông tin chung hệ thống, email quản trị và thay đổi mật khẩu bảo mật của tài khoản hiện tại.</p>
-            
-            <form method="POST" action="{{ url_for('schedule.settings') }}">
+
+            <form method="POST" action="{{ url_for('schedule.settings') }}" id="generalSettingsForm">
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label small fw-bold">Tên hệ thống / Đơn vị</label>
-                        <input type="text" name="system_name" class="form-control" value="Employee Task Scheduler">
+                        <input type="text" name="system_name" class="form-control" value="{{ system_name }}">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label small fw-bold">Email quản trị viên (Admin)</label>
-                        <input type="email" name="admin_email" class="form-control" value="{{ current_user.email or 'admin@scheduler.com' }}">
+                        <label class="form-label small fw-bold">Tên đăng nhập (Username) của bạn</label>
+                        <input type="text" name="new_admin_username" class="form-control" value="{{ current_user.username }}">
+                        <div class="form-text small text-muted">Đây là tên bạn dùng để đăng nhập — đổi tại đây sẽ áp dụng ngay từ lần đăng nhập tiếp theo.</div>
+                    </div>
+
+                    <div class="col-12"><hr class="my-1"></div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Mật khẩu hiện tại</label>
+                        <input type="password" name="current_admin_password" class="form-control" placeholder="Bắt buộc nếu đổi tên đăng nhập / mật khẩu" autocomplete="current-password">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Mật khẩu mới</label>
+                        <input type="password" name="new_admin_password" id="newAdminPassword" class="form-control" placeholder="Để trống nếu không muốn đổi" autocomplete="new-password" minlength="6">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">Nhập lại mật khẩu mới</label>
+                        <input type="password" name="confirm_admin_password" id="confirmAdminPassword" class="form-control" placeholder="Nhập lại mật khẩu mới" autocomplete="new-password" minlength="6">
                     </div>
                     <div class="col-12">
-                        <label class="form-label small fw-bold">Đổi mật khẩu tài khoản hiện tại</label>
-                        <input type="password" name="new_admin_password" class="form-control" placeholder="Để trống nếu không muốn đổi mật khẩu">
-                        <div class="form-text small text-muted">Mật khẩu mới sẽ thay thế mật khẩu hiện tại ngay sau khi lưu.</div>
+                        <div class="form-text small text-muted">Mật khẩu hiện tại là bắt buộc nếu bạn đổi Tên đăng nhập và/hoặc Mật khẩu mới. Mật khẩu mới cần tối thiểu 6 ký tự và khớp với ô xác nhận.</div>
                     </div>
+
                     <div class="col-12 text-end">
                         <button type="submit" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold">
                             <i class="fa-solid fa-floppy-disk me-1"></i> Lưu thay đổi
@@ -45,7 +60,7 @@
                 <i class="fa-solid fa-user-plus text-success fs-4 me-2"></i>
                 <h5 class="fw-bold mb-0 text-dark">Thêm tài khoản nhân viên mới</h5>
             </div>
-            
+
             <form method="POST" action="{{ url_for('schedule.settings') }}">
                 <input type="hidden" name="action" value="create_user">
                 <div class="row g-3 align-items-end">
@@ -55,7 +70,7 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label small fw-bold">Mật khẩu ban đầu</label>
-                        <input type="password" name="new_password" class="form-control" placeholder="Nhập mật khẩu..." required>
+                        <input type="password" name="new_password" class="form-control" placeholder="Tối thiểu 6 ký tự..." minlength="6" required>
                     </div>
                     <div class="col-md-3">
                         <button type="submit" class="btn btn-success btn-sm rounded-pill w-100 fw-bold py-2">
@@ -70,36 +85,123 @@
     <!-- Danh sách tài khoản trong hệ thống -->
     <div class="col-12">
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-            <div class="d-flex align-items-center mb-3">
-                <i class="fa-solid fa-users text-info fs-4 me-2"></i>
-                <h5 class="fw-bold mb-0 text-dark">Danh sách tài khoản trong hệ thống</h5>
+            <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                <div class="d-flex align-items-center">
+                    <i class="fa-solid fa-users text-info fs-4 me-2"></i>
+                    <h5 class="fw-bold mb-0 text-dark">Danh sách tài khoản trong hệ thống</h5>
+                </div>
+                <div style="max-width: 260px; width: 100%;">
+                    <input type="text" id="accountSearchInput" class="form-control form-control-sm" placeholder="Tìm theo tên đăng nhập...">
+                </div>
             </div>
-            
+
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" style="font-size: 13px;">
+                <table class="table table-hover align-middle mb-0" style="font-size: 13px;" id="accountsTable">
                     <thead class="table-light text-uppercase">
                         <tr>
                             <th class="py-3">ID</th>
                             <th class="py-3">Tên đăng nhập</th>
                             <th class="py-3">Vai trò</th>
+                            <th class="py-3 text-end">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in users %}
-                        <tr>
+                        <tr class="account-row">
                             <td class="fw-bold text-muted">#{{ user.id }}</td>
-                            <td class="fw-bold text-dark">{{ user.username }}</td>
+                            <td class="fw-bold text-dark account-username">{{ user.username }}</td>
                             <td>
-                                <span class="badge {% if user.role == 'Admin' %}bg-danger{% else %}bg-success{% endif %}">
-                                    {{ user.role }}
-                                </span>
+                                {% if user.id == current_user.id %}
+                                    <span class="badge {% if user.role == 'Admin' %}bg-danger{% else %}bg-success{% endif %}">
+                                        {{ user.role }}
+                                    </span>
+                                {% else %}
+                                    <form method="POST" action="{{ url_for('schedule.update_account_role', id=user.id) }}"
+                                          class="d-inline role-form" onsubmit="return confirm('Xác nhận đổi vai trò của {{ user.username }}?');">
+                                        <select name="role" class="form-select form-select-sm d-inline w-auto py-0"
+                                                style="font-size: 12px;" onchange="this.form.submit()">
+                                            <option value="Nhân viên" {% if user.role == 'Nhân viên' %}selected{% endif %}>Nhân viên</option>
+                                            <option value="Admin" {% if user.role == 'Admin' %}selected{% endif %}>Admin</option>
+                                        </select>
+                                    </form>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if user.id != current_user.id %}
+                                <form method="POST" action="{{ url_for('schedule.delete_account', id=user.id) }}"
+                                      class="d-inline" onsubmit="return confirm('Xóa vĩnh viễn tài khoản {{ user.username }}? Hành động này không thể hoàn tác.');">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-3" title="Xóa tài khoản">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                    </button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted small fst-italic">Tài khoản của bạn</span>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+                <div id="noAccountResult" class="text-center text-muted small py-3 d-none">Không tìm thấy tài khoản phù hợp.</div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Validate xác nhận mật khẩu mới trước khi submit form cài đặt chung
+    var generalForm = document.getElementById('generalSettingsForm');
+    if (generalForm) {
+        generalForm.addEventListener('submit', function (e) {
+            var usernameInput = generalForm.querySelector('input[name="new_admin_username"]');
+            var currentPass = generalForm.querySelector('input[name="current_admin_password"]').value;
+            var newPass = document.getElementById('newAdminPassword').value;
+            var confirmPass = document.getElementById('confirmAdminPassword').value;
+            var originalUsername = usernameInput.defaultValue;
+            var usernameChanged = usernameInput.value.trim() !== originalUsername;
+
+            if (newPass || confirmPass) {
+                if (newPass.length < 6) {
+                    e.preventDefault();
+                    alert('Mật khẩu mới phải có ít nhất 6 ký tự!');
+                    return;
+                }
+                if (newPass !== confirmPass) {
+                    e.preventDefault();
+                    alert('Xác nhận mật khẩu mới không khớp!');
+                    return;
+                }
+            }
+
+            if ((usernameChanged || newPass) && !currentPass) {
+                e.preventDefault();
+                alert('Vui lòng nhập Mật khẩu hiện tại để xác nhận thay đổi tên đăng nhập / mật khẩu!');
+                return;
+            }
+        });
+    }
+
+    // Tìm kiếm nhanh tài khoản theo tên đăng nhập
+    var searchInput = document.getElementById('accountSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            var keyword = this.value.trim().toLowerCase();
+            var rows = document.querySelectorAll('#accountsTable .account-row');
+            var visibleCount = 0;
+
+            rows.forEach(function (row) {
+                var username = row.querySelector('.account-username').textContent.trim().toLowerCase();
+                var match = username.includes(keyword);
+                row.classList.toggle('d-none', !match);
+                if (match) visibleCount++;
+            });
+
+            document.getElementById('noAccountResult').classList.toggle('d-none', visibleCount !== 0);
+        });
+    }
+});
+</script>
 {% endblock %}
