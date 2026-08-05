@@ -11,6 +11,9 @@ class User(db.Model, UserMixin):
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(50), default='Nhân viên')  # 'Admin' hoặc 'Nhân viên'
     email = db.Column(db.String(150), nullable=True)     # Email liên hệ
+    
+    # Thêm cột trạng thái (Pending = Chờ duyệt, Active = Đã duyệt)
+    status = db.Column(db.String(20), default='Pending') 
 
     def set_password(self, password):
         self.password = generate_password_hash(password)
@@ -19,4 +22,4 @@ class User(db.Model, UserMixin):
         return check_password_hash(self.password, password)
 
     def __repr__(self):
-        return f'<User {self.username} - {self.role}>'
+        return f'<User {self.username} - {self.role} - {self.status}>'

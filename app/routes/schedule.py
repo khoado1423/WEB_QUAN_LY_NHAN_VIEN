@@ -1,7 +1,9 @@
 import os
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_required, current_user
 from werkzeug.utils import secure_filename
+
 from app import db
 from app.models.schedule import Schedule
 from app.models.employee import Employee
@@ -10,21 +12,22 @@ from app.models.user import User
 from app.models.setting import SystemSetting
 from app.services.auto_scheduler import auto_assign_tasks, auto_assign_single_day
 from app.utils.decorators import admin_required
-from datetime import datetime, timedelta
 
+# 1. KHỞI TẠO BLUEPRINT (Bắt buộc phải đặt ở đầu file)
 schedule_bp = Blueprint('schedule', __name__, url_prefix='/schedules')
 
-# Danh sách định dạng file báo cáo được hỗ trợ
+# Cấu hình chung
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'xls', 'xlsx'}
-
-# Tên cài đặt hệ thống mặc định khi chưa từng lưu
 DEFAULT_SYSTEM_NAME = 'Employee Task Scheduler'
 MIN_PASSWORD_LENGTH = 6
-
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
+# ==========================================
+# QUẢN LÝ LỊCH VÀ PHÂN CÔNG
+# ==========================================
 
 @schedule_bp.route('/')
 @login_required
@@ -209,7 +212,7 @@ def reports():
 
 
 # ==========================================
-# TÍNH NĂNG ĐIỂM DANH VÀ TẢI FILE BÁO CÁO
+# điểm DANH VÀ BÁO CÁO
 # ==========================================
 
 @schedule_bp.route('/generate-attendance-code/<int:id>', methods=['POST'])
@@ -285,40 +288,16 @@ def upload_report(id):
 
 
 # ==========================================
-# CÀI ĐẶT HỆ THỐNG & TÀI KHOẢN
+# CÀI ĐẶT HỆ THỐNG & PHÊ DUYỆT TÀI KHOẢN
 # ==========================================
 
 @schedule_bp.route('/settings', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def settings():
-    users = User.query.order_by(User.id.asc()).all()
     system_name = SystemSetting.get('system_name', DEFAULT_SYSTEM_NAME)
 
     if request.method == 'POST':
-        action = request.form.get('action')
-
-        # 1. Thêm tài khoản nhân viên mới
-        if action == 'create_user':
-            new_username = (request.form.get('new_username') or '').strip()
-            new_password = request.form.get('new_password') or ''
-
-            if not new_username or not new_password:
-                flash('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu!', 'warning')
-            elif len(new_password) < MIN_PASSWORD_LENGTH:
-                flash(f'Mật khẩu phải có ít nhất {MIN_PASSWORD_LENGTH} ký tự!', 'warning')
-            elif User.query.filter(db.func.lower(User.username) == new_username.lower()).first():
-                flash('Tên đăng nhập này đã tồn tại!', 'danger')
-            else:
-                new_user = User(username=new_username, role='Nhân viên')
-                new_user.set_password(new_password)
-                db.session.add(new_user)
-                db.session.commit()
-                flash(f'Đã thêm tài khoản nhân viên "{new_username}" thành công!', 'success')
-
-            return redirect(url_for('schedule.settings'))
-
-        # 2. Cập nhật thông tin hệ thống & đổi tên đăng nhập / mật khẩu Admin hiện tại
         new_system_name = (request.form.get('system_name') or '').strip()
         new_admin_username = (request.form.get('new_admin_username') or '').strip()
         current_password = request.form.get('current_admin_password') or ''
@@ -330,13 +309,11 @@ def settings():
 
         has_error = False
 
-        # Đổi tên đăng nhập và/hoặc mật khẩu đều bắt buộc xác thực mật khẩu hiện tại
         if wants_username_change or wants_password_change:
             if not current_password or not current_user.check_password(current_password):
                 flash('Mật khẩu hiện tại không chính xác, không thể đổi tên đăng nhập / mật khẩu!', 'danger')
                 has_error = True
 
-        # Đổi tên đăng nhập
         if not has_error and wants_username_change:
             duplicate = User.query.filter(
                 db.func.lower(User.username) == new_admin_username.lower(),
@@ -349,7 +326,6 @@ def settings():
                 current_user.username = new_admin_username
                 flash(f'Đã đổi tên đăng nhập thành "{new_admin_username}"!', 'success')
 
-        # Đổi mật khẩu
         if not has_error and wants_password_change:
             if len(new_admin_password) < MIN_PASSWORD_LENGTH:
                 flash(f'Mật khẩu mới phải có ít nhất {MIN_PASSWORD_LENGTH} ký tự!', 'warning')
@@ -372,7 +348,41 @@ def settings():
         flash('Đã lưu cài đặt hệ thống thành công!', 'success')
         return redirect(url_for('schedule.settings'))
 
-    return render_template('schedule/settings.html', users=users, system_name=system_name)
+    # Dành cho phương thức GET: Lấy tài khoản chờ duyệt và tài khoản đã kích hoạt
+    pending_users = User.query.filter_by(status='Pending').order_by(User.id.asc()).all()
+    active_users = User.query.filter(User.status != 'Pending').order_by(User.id.asc()).all()
+
+    return render_template(
+        'schedule/settings.html',
+        pending_users=pending_users,
+        active_users=active_users,
+        users=active_users,
+        system_name=system_name
+    )
+
+
+@schedule_bp.route('/settings/approve-user/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def approve_user(user_id):
+    user = User.query.get_or_404(user_id)
+    user.status = 'Active'  # Phê duyệt tài khoản
+    db.session.commit()
+    
+    flash(f'Đã phê duyệt tài khoản {user.username} thành công!', 'success')
+    return redirect(url_for('schedule.settings'))
+
+
+@schedule_bp.route('/settings/reject-user/<int:user_id>', methods=['POST'])
+@login_required
+@admin_required
+def reject_user(user_id):
+    user = User.query.get_or_404(user_id)
+    db.session.delete(user) # Từ chối & Xóa yêu cầu
+    db.session.commit()
+    
+    flash(f'Đã từ chối yêu cầu của tài khoản {user.username}.', 'info')
+    return redirect(url_for('schedule.settings'))
 
 
 @schedule_bp.route('/settings/accounts/<int:id>/role', methods=['POST'])
